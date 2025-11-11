@@ -51,6 +51,7 @@ CREATE TABLE port_table (
   - "unique constraint"
 - handle case where nvim server killed by another process "No such process"
   (maybe refresh command, e.g. system reboots)
+- update README.md with installation instructions and workflow demo
 
 ### Then:
 
