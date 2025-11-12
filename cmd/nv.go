@@ -5,23 +5,19 @@ import (
 	"fmt"
 	"os/exec"
 
-	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/spf13/cobra"
 )
 
 func newNvCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "nv [LABEL]",
-		Args:  cobra.ExactArgs(1),
-		Short: "spawns new neovide to nvim server",
+		Use:     "nv [LABEL]",
+		Aliases: []string{"a"},
+		Args:    cobra.ExactArgs(1),
+		Short:   "spawns new neovide to nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, err := statePath()
+			state, err := newState()
 			if err != nil {
-				return fmt.Errorf("state path: %w", err)
-			}
-			state, err := adapter.New(path)
-			if err != nil {
-				return fmt.Errorf("sqlite state adapter: %w", err)
+				return err
 			}
 			label := args[0]
 			s, err := state.GetServer(context.Background(), label)

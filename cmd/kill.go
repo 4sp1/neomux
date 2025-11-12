@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 
-	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/spf13/cobra"
 )
 
@@ -16,13 +15,9 @@ func newKillCmd() *cobra.Command {
 		Short: "kill nvim server",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, err := statePath()
+			state, err := newState()
 			if err != nil {
-				return fmt.Errorf("state path: %w", err)
-			}
-			state, err := adapter.New(path)
-			if err != nil {
-				return fmt.Errorf("new sqlite state adapter: %w", err)
+				return err
 			}
 			label := args[0]
 			s, err := state.GetServer(context.Background(), label)

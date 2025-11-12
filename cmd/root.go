@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path"
+
+	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	"github.com/spf13/cobra"
 )
 
 func New() error {
@@ -29,4 +31,16 @@ func statePath() (string, error) {
 	}
 	path := path.Join(home, ".cache", "nvim", "servers.db")
 	return path, nil
+}
+
+func newState() (adapter.Adapter, error) {
+	path, err := statePath()
+	if err != nil {
+		return nil, fmt.Errorf("state path: %w", err)
+	}
+	state, err := adapter.New(path)
+	if err != nil {
+		return nil, fmt.Errorf("sqlite state adapter: %w", err)
+	}
+	return state, nil
 }

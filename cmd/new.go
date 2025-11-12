@@ -16,13 +16,9 @@ func newNewCmd() *cobra.Command {
 		Short: "creates new nvim server in current directory",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, err := statePath()
+			state, err := newState()
 			if err != nil {
-				return fmt.Errorf("state path: %w", err)
-			}
-			state, err := adapter.New(path)
-			if err != nil {
-				return fmt.Errorf("new sqlite adapter: %w (path=%q)", err, path)
+				return err
 			}
 			maxPort, err := state.MaxPort(context.Background())
 			if err != nil {
