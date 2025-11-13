@@ -25,7 +25,7 @@ func newNvCmd() *cobra.Command {
 				return fmt.Errorf("get neovim server: %w", err)
 			}
 			{
-				cmd := exec.Command("neovide", fmt.Sprintf("--server=localhost:%d", s.Port))
+				cmd := exec.Command("neovide", "--frame=transparent", fmt.Sprintf("--server=localhost:%d", s.Port))
 				if err := cmd.Start(); err != nil {
 					return fmt.Errorf("run neovide: %w", err)
 				}
