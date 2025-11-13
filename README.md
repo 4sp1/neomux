@@ -56,3 +56,7 @@ CREATE TABLE port_table (
 ### Then:
 
 - ssh tunneling (local port forwarding) and add command for next port
+- state clean command support for other platforms (list processes)
+  see [mitchellh/go-ps](
+  https://github.com/mitchellh/go-ps
+  )
