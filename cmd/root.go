@@ -17,7 +17,13 @@ func New() error {
 			return cmd.Help()
 		},
 	}
-	cmd.AddCommand(newNewCmd())
+	{
+		sc, err := newNewCmd()
+		if err != nil {
+			return fmt.Errorf("new \"new\" cmd: %w", err)
+		}
+		cmd.AddCommand(sc)
+	}
 	cmd.AddCommand(newNvCmd())
 	cmd.AddCommand(newKillCmd())
 	cmd.AddCommand(newListCmd())
