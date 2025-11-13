@@ -21,6 +21,7 @@ func New() error {
 	cmd.AddCommand(newNvCmd())
 	cmd.AddCommand(newKillCmd())
 	cmd.AddCommand(newListCmd())
+	cmd.AddCommand(newStateCmd())
 	return cmd.Execute()
 }
 
