@@ -45,9 +45,10 @@ func newNewCmd() (*cobra.Command, error) {
 				label := args[0]
 				fmt.Println("new nvim server created with label", label)
 				if err := state.CreateServer(context.Background(), adapter.NvimServer{
-					PID:   cmd.Process.Pid,
-					Label: label,
-					Port:  newPort,
+					PID:     cmd.Process.Pid,
+					Label:   label,
+					Port:    newPort,
+					Workdir: *cd,
 				}); err != nil {
 					return fmt.Errorf("sqlite: create server: %w", err)
 				}

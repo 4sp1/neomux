@@ -22,7 +22,7 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("list servers: %w", err)
 			}
 			for _, s := range servers {
-				fmt.Println(s.Label)
+				fmt.Printf("%s:%s\n", s.Label, s.Workdir)
 			}
 			return nil
 		},

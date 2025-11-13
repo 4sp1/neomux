@@ -10,9 +10,10 @@ import (
 )
 
 type NvimServer struct {
-	Port  int
-	PID   int
-	Label string
+	Port    int
+	PID     int
+	Label   string
+	Workdir string
 }
 
 type adapter struct {
@@ -60,7 +61,9 @@ func (a adapter) DeleteLabel(ctx context.Context, label string) error {
 }
 
 func (a adapter) CreateServer(ctx context.Context, server NvimServer) error {
-	_, err := a.db.ExecContext(ctx, "INSERT INTO neovim_servers (port, pid, label) VALUES(?, ?, ?)", server.Port, server.PID, server.Label)
+	_, err := a.db.ExecContext(ctx,
+		"INSERT INTO neovim_servers (port, pid, label, workdir) VALUES(?, ?, ?, ?)",
+		server.Port, server.PID, server.Label, server.Workdir)
 	if err != nil {
 		return fmt.Errorf("insert: %w", err)
 	}
@@ -68,10 +71,10 @@ func (a adapter) CreateServer(ctx context.Context, server NvimServer) error {
 }
 
 func (a adapter) GetServer(ctx context.Context, label string) (NvimServer, error) {
-	row := a.db.QueryRow("SELECT port, pid FROM neovim_servers WHERE label=?", label)
+	row := a.db.QueryRow("SELECT port, pid, workdir FROM neovim_servers WHERE label=?", label)
 	var s NvimServer
 	s.Label = label
-	if err := row.Scan(&s.Port, &s.PID); err != nil {
+	if err := row.Scan(&s.Port, &s.PID, &s.Workdir); err != nil {
 		return NvimServer{}, fmt.Errorf("select: scan: %w", err)
 	}
 	return s, nil
@@ -91,14 +94,14 @@ func (a adapter) MaxPort(ctx context.Context) (int, error) {
 }
 
 func (a adapter) ListServers(ctx context.Context) ([]NvimServer, error) {
-	rows, err := a.db.Query("SELECT port, pid, label FROM neovim_servers")
+	rows, err := a.db.Query("SELECT port, pid, label, workdir FROM neovim_servers")
 	if err != nil {
 		return nil, fmt.Errorf("query: select: %w", err)
 	}
 	servers := []NvimServer{}
 	for rows.Next() {
 		var s NvimServer
-		if err := rows.Scan(&s.Port, &s.PID, &s.Label); err != nil {
+		if err := rows.Scan(&s.Port, &s.PID, &s.Label, &s.Workdir); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		servers = append(servers, s)
