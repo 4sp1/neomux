@@ -16,8 +16,6 @@ func newNewCmd() (*cobra.Command, error) {
 		Short: "creates new nvim server in current directory",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("cd", *cd)
-
 			state, err := newState()
 			if err != nil {
 				return err
