@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	adapter "github.com/4sp1/neomux/internal/adapter/os/process"
-	adapter_state "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -26,48 +25,33 @@ func newStateCleanCmd() *cobra.Command {
 		Use:   "clean",
 		Short: "remove orphan state entries",
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			state, err := newState()
 			if err != nil {
 				return err
 			}
-			servers, err := state.ListServers(context.Background())
-			if err != nil {
-				return fmt.Errorf("list servers: %w", err)
-			}
-			processes, err := adapter.New()
+
+			proc, err := adapter.New()
 			if err != nil {
 				return err
 			}
-			procs, err := processes.List()
+
+			app, err := app.New(proc, state)
 			if err != nil {
-				return fmt.Errorf("processes list: %w", err)
+				return fmt.Errorf("app: new: %w", err)
 			}
-			pmap := map[int]string{}
-			for _, p := range procs {
-				pmap[p.PID] = p.Binary
+
+			labels, err := app.StateClean()
+			if err != nil {
+				return fmt.Errorf("app: state clean: %w", err)
 			}
-			for _, s := range servers {
-				if _, ok := pmap[s.PID]; !ok {
-					if err := deleteLabel(state, s.Label); err != nil {
-						return err
-					}
-				}
-				if b, ok := pmap[s.PID]; ok && b != "nvim" {
-					if err := deleteLabel(state, s.Label); err != nil {
-						return err
-					}
-				}
+
+			for _, label := range labels {
+				fmt.Println(label)
 			}
+
 			return nil
 		},
 	}
 	return cmd
-}
-
-func deleteLabel(state adapter_state.Adapter, label string) error {
-	if err := state.DeleteLabel(context.Background(), label); err != nil {
-		return fmt.Errorf("delete label %q: %w", label, err)
-	}
-	fmt.Println(label)
-	return nil
 }

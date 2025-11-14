@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"os/exec"
 
+	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -13,25 +12,22 @@ func newNvCmd() *cobra.Command {
 		Use:     "nv [LABEL]",
 		Aliases: []string{"a"},
 		Args:    cobra.ExactArgs(1),
-		Short:   "spawns new neovide to nvim server",
+		Short:   "attach neovide to nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			state, err := newState()
 			if err != nil {
 				return err
 			}
-			label := args[0]
-			s, err := state.GetServer(context.Background(), label)
+
+			app, err := app.New(nil, state)
 			if err != nil {
-				return fmt.Errorf("get neovim server: %w", err)
+				return fmt.Errorf("app: new: %w", err)
 			}
-			{
-				cmd := exec.Command("neovide",
-					"--frame=transparent", "--grid=120x80",
-					fmt.Sprintf("--server=localhost:%d", s.Port))
-				if err := cmd.Start(); err != nil {
-					return fmt.Errorf("run neovide: %w", err)
-				}
+
+			if err := app.Attach(args[0]); err != nil {
+				return fmt.Errorf("app: attach: %w", err)
 			}
+
 			return nil
 		},
 	}
