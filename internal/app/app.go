@@ -41,9 +41,17 @@ type app struct {
 
 type Config struct {
 	minPort int
+	debug   bool
 }
 
 type Option func(Config) Config
+
+func WithDebug() Option {
+	return func(c Config) Config {
+		c.debug = true
+		return c
+	}
+}
 
 func WithMinPort(port int) Option {
 	return func(c Config) Config {
@@ -57,9 +65,27 @@ func (a app) Serve(label, workdir string) error {
 	if err != nil {
 		return fmt.Errorf("maxport: %w", err)
 	}
+
 	newPort := maxPort + 1
 	if newPort < a.conf.minPort {
 		newPort = a.conf.minPort
+	}
+	for {
+		err := exec.Command("nc", "-z", "localhost", fmt.Sprintf("%d", newPort)).Run()
+		if err == nil {
+			if a.conf.debug {
+				fmt.Println("port", newPort, "in use, trying", newPort+1)
+			}
+			newPort += 1
+			continue
+		} else {
+			switch err := err.(type) {
+			case *exec.ExitError:
+			default:
+				return fmt.Errorf("exec: netcat: %w", err)
+			}
+		}
+		break
 	}
 
 	if err := os.Chdir(workdir); err != nil {
