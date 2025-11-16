@@ -28,6 +28,7 @@ func New() error {
 	cmd.AddCommand(newKillCmd())
 	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newStateCmd())
+	cmd.AddCommand(newDuplicateCmd())
 	return cmd.Execute()
 }
 

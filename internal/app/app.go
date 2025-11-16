@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 
@@ -29,6 +30,7 @@ type App interface {
 	Serve(label, workdir string) error
 	Attach(label string) error
 	StateClean() ([]Label, error)
+	Duplicate(label string) (string, error)
 }
 
 type app struct {
@@ -63,6 +65,7 @@ func (a app) Serve(label, workdir string) error {
 	if err := os.Chdir(workdir); err != nil {
 		return fmt.Errorf("chdir: %w", err)
 	}
+
 	cmd := exec.Command("nvim", "--headless", "--listen", fmt.Sprintf("localhost:%d", newPort))
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("exec nvim headless localhost:%d: %w", newPort, err)
@@ -137,4 +140,27 @@ func (a app) deleteLabel(label string) error {
 		return fmt.Errorf("state: delete label %q: %w", label, err)
 	}
 	return nil
+}
+
+func (a app) Duplicate(label string) (string, error) {
+	s, err := a.state.GetServer(context.Background(), label)
+	if err != nil {
+		return "", fmt.Errorf("state: get server: %w", err)
+	}
+	var newLabel string
+	{
+		charset := []byte{
+			'a', 'b', 'c', 'd', 'e', 'x', 'y', 'z',
+			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+			'A', 'B', 'C', 'D', 'E', 'X', 'Y', 'Z'}
+		b := make([]byte, 4)
+		for i := range b {
+			b[i] = charset[rand.Intn(len(charset))]
+		}
+		newLabel = label + "-" + string(b)
+	}
+	if err := a.Serve(newLabel, s.Workdir); err != nil {
+		return "", fmt.Errorf("serve %q: %w", newLabel, err)
+	}
+	return newLabel, nil
 }
