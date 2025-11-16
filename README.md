@@ -14,7 +14,13 @@ editing experience.
 
 Neomux: Manages headless Neovim instances and spawns Neovide.
 
-## Commands:
+## Requirements
+
+- `nc`: netcat openbsd variant
+- `nvim`
+- `neovide`
+
+## Commands
 
 ```
 neomux
