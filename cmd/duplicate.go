@@ -8,6 +8,7 @@ import (
 )
 
 func newDuplicateCmd() *cobra.Command {
+	var attach *bool
 	cmd := &cobra.Command{
 		Use:     "duplicate [LABEL]",
 		Aliases: []string{"clone", "dup"},
@@ -18,12 +19,12 @@ func newDuplicateCmd() *cobra.Command {
 				return fmt.Errorf("new state: %w", err)
 			}
 
-			app, err := app.New(nil, s, app.WithDebug())
+			a, err := app.New(nil, s, app.WithDebug())
 			if err != nil {
 				return fmt.Errorf("new app: %w", err)
 			}
 
-			label, err := app.Duplicate(args[0])
+			label, err := a.Duplicate(args[0], app.ServeWithAttach(*attach))
 			if err != nil {
 				return fmt.Errorf("app: duplicate: %w", err)
 			}
@@ -32,5 +33,6 @@ func newDuplicateCmd() *cobra.Command {
 			return nil
 		},
 	}
+	attach = cmd.Flags().Bool("attach", true, "attach to new neovide if true")
 	return cmd
 }

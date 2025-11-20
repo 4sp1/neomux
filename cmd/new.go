@@ -10,6 +10,7 @@ import (
 
 func newNewCmd() (*cobra.Command, error) {
 	var rangeStart *int // port start range
+	var attach *bool
 	var cd *string
 	cmd := &cobra.Command{
 		Use:   "new [LABEL]",
@@ -21,12 +22,14 @@ func newNewCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			app, err := app.New(nil, state, app.WithMinPort(*rangeStart))
+			a, err := app.New(nil, state, app.WithMinPort(*rangeStart))
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}
 
-			if err := app.Serve(args[0], *cd); err != nil {
+			label := args[0]
+
+			if err := a.Serve(label, *cd, app.ServeWithAttach(*attach)); err != nil {
 				return fmt.Errorf("app: serve: %w", err)
 			}
 
@@ -35,6 +38,8 @@ func newNewCmd() (*cobra.Command, error) {
 	}
 
 	rangeStart = cmd.Flags().Int("range-start", 10010, "minimal port")
+
+	attach = cmd.Flags().Bool("attach", true, "attach to new neovide if true")
 
 	wd, err := os.Getwd()
 	if err != nil {

@@ -28,10 +28,10 @@ func New(p proc_adapter.Adapter, s state_adapter.Adapter, opts ...Option) (App, 
 type Label string
 
 type App interface {
-	Serve(label, workdir string) error
+	Serve(label, workdir string, opts ...ServeOption) error
 	Attach(label string) error
 	StateClean() ([]Label, error)
-	Duplicate(label string) (string, error)
+	Duplicate(label string, opts ...ServeOption) (string, error)
 }
 
 type app struct {
@@ -61,7 +61,24 @@ func WithMinPort(port int) Option {
 	}
 }
 
-func (a app) Serve(label, workdir string) error {
+type ServeOption func(ServeConfig) ServeConfig
+type ServeConfig struct {
+	attach bool
+}
+
+func ServeWithAttach(attach bool) ServeOption {
+	return func(sc ServeConfig) ServeConfig {
+		sc.attach = attach
+		return sc
+	}
+}
+
+func (a app) Serve(label, workdir string, opts ...ServeOption) error {
+	conf := ServeConfig{}
+	for _, opt := range opts {
+		conf = opt(conf)
+	}
+
 	maxPort, err := a.state.MaxPort(context.TODO())
 	if err != nil {
 		return fmt.Errorf("maxport: %w", err)
@@ -113,6 +130,12 @@ func (a app) Serve(label, workdir string) error {
 		Workdir: workdir,
 	}); err != nil {
 		return fmt.Errorf("state: create server: %w", err)
+	}
+
+	if conf.attach {
+		if err := a.Attach(label); err != nil {
+			return fmt.Errorf("app: attach: %w")
+		}
 	}
 
 	return nil
@@ -177,7 +200,12 @@ func (a app) deleteLabel(label string) error {
 	return nil
 }
 
-func (a app) Duplicate(label string) (string, error) {
+func (a app) Duplicate(label string, opts ...ServeOption) (string, error) {
+	conf := ServeConfig{}
+	for _, opt := range opts {
+		conf = opt(conf)
+	}
+
 	s, err := a.state.GetServer(context.Background(), label)
 	if err != nil {
 		return "", fmt.Errorf("state: get server: %w", err)
@@ -194,7 +222,7 @@ func (a app) Duplicate(label string) (string, error) {
 		}
 		newLabel = label + "-" + string(b)
 	}
-	if err := a.Serve(newLabel, s.Workdir); err != nil {
+	if err := a.Serve(newLabel, s.Workdir, ServeWithAttach(conf.attach)); err != nil {
 		return "", fmt.Errorf("serve %q: %w", newLabel, err)
 	}
 	return newLabel, nil
