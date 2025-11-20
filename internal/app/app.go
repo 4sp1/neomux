@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path"
 
 	proc_adapter "github.com/4sp1/neomux/internal/adapter/os/process"
 	state_adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
@@ -86,6 +87,14 @@ func (a app) Serve(label, workdir string) error {
 			}
 		}
 		break
+	}
+
+	if !path.IsAbs(workdir) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("os: getwd: %w", err)
+		}
+		workdir = path.Join(wd, workdir)
 	}
 
 	if err := os.Chdir(workdir); err != nil {
