@@ -134,7 +134,7 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 
 	if conf.attach {
 		if err := a.Attach(label); err != nil {
-			return fmt.Errorf("app: attach: %w")
+			return fmt.Errorf("app: attach: %w", err)
 		}
 	}
 

@@ -8,15 +8,27 @@ import (
 )
 
 func newNvCmd() *cobra.Command {
+	var label *string
 	cmd := &cobra.Command{
-		Use:     "nv [LABEL]",
-		Aliases: []string{"a"},
+		Use:     "attach [LABEL]",
+		Aliases: []string{"a", "nv"},
 		Args:    cobra.ExactArgs(1),
 		Short:   "attach neovide to nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			state, err := newState()
 			if err != nil {
 				return err
+			}
+
+			if len(args) == 1 {
+				*label = args[0]
+			}
+
+			if *label == "" {
+				*label, err = fzfRun(cmd.Context(), state)
+				if err != nil {
+					return fmt.Errorf("fzf: %w", err)
+				}
 			}
 
 			app, err := app.New(nil, state)
@@ -31,5 +43,6 @@ func newNvCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().String("label", "", "session name")
 	return cmd
 }
