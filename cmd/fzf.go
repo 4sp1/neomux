@@ -64,20 +64,21 @@ func (f fzf) Run(sessions []session) (string, error) {
 		dirs:    dirs,
 		search:  "",
 		matches: make([]string, len(sessions)),
+		matched: make([]string, len(sessions)),
 		tab:     maxima,
 	}
 	_, err := tea.NewProgram(m).Run()
 	if err != nil {
 		return "", fmt.Errorf("tea fzf: %w", err)
 	}
-	match := strings.TrimSpace(strings.Split(m.matches[0], "[")[0])
-	return match, nil
+	return m.matched[m.index], nil
 }
 
 type model struct {
 	choices []string
 	dirs    map[string]session
 	matches []string
+	matched []string
 	search  string
 	index   int
 	tab     int
@@ -127,6 +128,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	sort.Sort(matches)
 	for i, match := range matches {
 		m.matches[i] = m.dirs[match.Target].display(m.tab)
+		m.matched[i] = m.dirs[match.Target].label
 	}
 	for i := len(matches); i < len(m.matches); i++ {
 		m.matches[i] = ""

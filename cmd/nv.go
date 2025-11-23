@@ -12,7 +12,6 @@ func newNvCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "attach [LABEL]",
 		Aliases: []string{"a", "nv"},
-		Args:    cobra.ExactArgs(1),
 		Short:   "attach neovide to nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			state, err := newState()
@@ -36,13 +35,13 @@ func newNvCmd() *cobra.Command {
 				return fmt.Errorf("app: new: %w", err)
 			}
 
-			if err := app.Attach(args[0]); err != nil {
+			if err := app.Attach(*label); err != nil {
 				return fmt.Errorf("app: attach: %w", err)
 			}
 
 			return nil
 		},
 	}
-	cmd.Flags().String("label", "", "session name")
+	label = cmd.Flags().String("label", "", "session name")
 	return cmd
 }
