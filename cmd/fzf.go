@@ -31,8 +31,14 @@ type fzf struct {
 }
 
 const (
-	SetInverse   = "\033[7m"
-	ResetInverse = "\033[27m"
+	SetInverse         = "\033[7m"
+	ResetInverse       = "\033[27m"
+	CursorVisible      = "\033[?25h"
+	EraseEntireScreen  = "\033[2J"
+	SaveScreen         = "\033[?47h"
+	RestoreScreen      = "\033[?47l"
+	CursorHomePosition = "\033[H"
+	EraseSavedLines    = "\033[3J"
 )
 
 type session struct {
@@ -85,6 +91,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
+	fmt.Print(EraseSavedLines, CursorHomePosition, EraseEntireScreen)
 	return nil
 }
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -92,8 +99,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case tea.KeyCtrlC.String():
+			fmt.Print(EraseSavedLines, CursorHomePosition, EraseEntireScreen, CursorVisible)
 			os.Exit(1)
 		case tea.KeyEnter.String():
+			fmt.Print(EraseSavedLines, CursorHomePosition, EraseEntireScreen)
 			if m.matches[0] != "" {
 				return m, tea.Quit
 			}

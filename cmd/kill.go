@@ -14,7 +14,6 @@ func newKillCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kill [LABEL]",
 		Short: "kill nvim server",
-		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			state, err := newState()
 			if err != nil {
