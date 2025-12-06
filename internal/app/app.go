@@ -79,15 +79,7 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 		conf = opt(conf)
 	}
 
-	maxPort, err := a.state.MaxPort(context.TODO())
-	if err != nil {
-		return fmt.Errorf("maxport: %w", err)
-	}
-
-	newPort := maxPort + 1
-	if newPort < a.conf.minPort {
-		newPort = a.conf.minPort
-	}
+	newPort := a.conf.minPort
 	for {
 		err := exec.Command("nc", "-z", "localhost", fmt.Sprintf("%d", newPort)).Run()
 		if err == nil {
