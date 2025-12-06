@@ -30,6 +30,7 @@ type Label string
 type App interface {
 	Serve(label, workdir string, opts ...ServeOption) error
 	Attach(label string) error
+	AttachOrRestore(label string) error
 	StateClean() ([]Label, error)
 	Duplicate(label string, opts ...ServeOption) (string, error)
 }
@@ -63,12 +64,20 @@ func WithMinPort(port int) Option {
 
 type ServeOption func(ServeConfig) ServeConfig
 type ServeConfig struct {
-	attach bool
+	attach  bool
+	restore bool
 }
 
 func ServeWithAttach(attach bool) ServeOption {
 	return func(sc ServeConfig) ServeConfig {
 		sc.attach = attach
+		return sc
+	}
+}
+
+func ServeWithRestore(restore bool) ServeOption {
+	return func(sc ServeConfig) ServeConfig {
+		sc.restore = restore
 		return sc
 	}
 }
@@ -115,13 +124,23 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 		return fmt.Errorf("exec nvim headless localhost:%d: %w", newPort, err)
 	}
 
-	if err := a.state.CreateServer(context.Background(), state_adapter.NvimServer{
-		PID:     cmd.Process.Pid,
-		Label:   label,
-		Port:    newPort,
-		Workdir: workdir,
-	}); err != nil {
-		return fmt.Errorf("state: create server: %w", err)
+	if a.conf.debug {
+		fmt.Println("new server", "port =", newPort, "pid =", cmd.Process.Pid)
+	}
+
+	if conf.restore {
+		if err := a.state.UpdateServerPort(context.Background(), label, newPort); err != nil {
+			return fmt.Errorf("state: update server port: %w", err)
+		}
+	} else {
+		if err := a.state.CreateServer(context.Background(), state_adapter.NvimServer{
+			PID:     cmd.Process.Pid,
+			Label:   label,
+			Port:    newPort,
+			Workdir: workdir,
+		}); err != nil {
+			return fmt.Errorf("state: create server: %w", err)
+		}
 	}
 
 	if conf.attach {
@@ -131,6 +150,29 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 	}
 
 	return nil
+}
+
+func (a app) AttachOrRestore(label string) error {
+	s, err := a.state.GetServer(context.TODO(), label)
+	if err != nil {
+		return fmt.Errorf("state: get server %q: %w", label, err)
+	}
+
+	procs, err := a.proc.List()
+	if err != nil {
+		return fmt.Errorf("proc: list: %w", err)
+	}
+
+	// search in server process in procs and attach if found
+	for _, p := range procs {
+		if p.PID == s.PID && p.Binary == "nvim" {
+			return a.Attach(label)
+		}
+	}
+
+	// if no nvim server was found, start a new server
+	// and attach a new neovide session
+	return a.Serve(s.Label, s.Workdir, ServeWithAttach(true), ServeWithRestore(true))
 }
 
 func (a app) Attach(label string) error {
