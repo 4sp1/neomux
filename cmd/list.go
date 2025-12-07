@@ -11,7 +11,8 @@ import (
 )
 
 func newListCmd() *cobra.Command {
-	return &cobra.Command{
+	var clean *bool
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "list all nvim servers' labels",
@@ -31,17 +32,19 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("app: new: %w", err)
 			}
 
-			labels, err := app.StateClean()
-			if err != nil {
-				return fmt.Errorf("app: state clean: %w", err)
-			}
-			{
-				ls := make([]string, len(labels))
-				for i, l := range labels {
-					ls[i] = string(l)
+			if *clean {
+				labels, err := app.StateClean()
+				if err != nil {
+					return fmt.Errorf("app: state clean: %w", err)
 				}
-				if len(ls) > 0 {
-					fmt.Println("orphaned:", strings.Join(ls, ", "))
+				{
+					ls := make([]string, len(labels))
+					for i, l := range labels {
+						ls[i] = string(l)
+					}
+					if len(ls) > 0 {
+						fmt.Println("orphaned:", strings.Join(ls, ", "))
+					}
 				}
 			}
 
@@ -57,4 +60,6 @@ func newListCmd() *cobra.Command {
 			return nil
 		},
 	}
+	clean = cmd.Flags().Bool("clean", false, "clean orphaned sessions from neomux state")
+	return cmd
 }
