@@ -11,6 +11,7 @@ import (
 func newNvCmd() *cobra.Command {
 	var label *string
 	var noReset *bool
+	var debug *bool
 	cmd := &cobra.Command{
 		Use:     "attach [LABEL]",
 		Aliases: []string{"a", "nv"},
@@ -40,7 +41,11 @@ func newNvCmd() *cobra.Command {
 				}
 			}
 
-			app, err := app.New(proc, state)
+			opts := make([]app.Option, 0, 1)
+			if *debug {
+				opts = append(opts, app.WithDebug())
+			}
+			app, err := app.New(proc, state, opts...)
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}
@@ -61,5 +66,6 @@ func newNvCmd() *cobra.Command {
 	}
 	label = cmd.Flags().String("label", "", "session name")
 	noReset = cmd.Flags().Bool("no-reset", false, "no new instance of nvim server created")
+	debug = cmd.Flags().Bool("debug", false, "debug app")
 	return cmd
 }

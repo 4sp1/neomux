@@ -129,7 +129,7 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 	}
 
 	if conf.restore {
-		if err := a.state.UpdateServerPort(context.Background(), label, newPort); err != nil {
+		if err := a.state.UpdateServerAddr(context.Background(), label, newPort, cmd.Process.Pid); err != nil {
 			return fmt.Errorf("state: update server port: %w", err)
 		}
 	} else {
@@ -165,6 +165,9 @@ func (a app) AttachOrRestore(label string) error {
 
 	// search in server process in procs and attach if found
 	for _, p := range procs {
+		if a.conf.debug {
+			fmt.Println(p.PID, p.Binary, s.PID, s.Label)
+		}
 		if p.PID == s.PID && p.Binary == "nvim" {
 			return a.Attach(label)
 		}

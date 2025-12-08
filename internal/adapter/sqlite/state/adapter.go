@@ -23,7 +23,7 @@ type adapter struct {
 type Adapter interface {
 	DeleteLabel(ctx context.Context, label string) error
 	CreateServer(ctx context.Context, server NvimServer) error
-	UpdateServerPort(ctx context.Context, label string, port int) error
+	UpdateServerAddr(ctx context.Context, label string, port int, pid int) error
 	GetServer(ctx context.Context, label string) (NvimServer, error)
 	MaxPort(ctx context.Context) (int, error)
 	ListServers(ctx context.Context) ([]NvimServer, error)
@@ -71,8 +71,8 @@ func (a adapter) CreateServer(ctx context.Context, server NvimServer) error {
 	return nil
 }
 
-func (a adapter) UpdateServerPort(ctx context.Context, label string, port int) error {
-	_, err := a.db.ExecContext(ctx, "UPDATE neovim_servers SET port = ? WHERE label = ?", port, label)
+func (a adapter) UpdateServerAddr(ctx context.Context, label string, port int, pid int) error {
+	_, err := a.db.ExecContext(ctx, "UPDATE neovim_servers SET port = ?, pid = ? WHERE label = ?", port, pid, label)
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
