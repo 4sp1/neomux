@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	procs "github.com/4sp1/neomux/internal/adapter/os/process"
@@ -11,7 +12,7 @@ import (
 )
 
 func newListCmd() *cobra.Command {
-	var clean *bool
+	var clean, workdir, pid, port *bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -54,12 +55,37 @@ func newListCmd() *cobra.Command {
 			}
 
 			for _, s := range servers {
-				fmt.Printf("%s:%s\n", s.Label, s.Workdir)
+				info := []string{}
+				for _, i := range []struct {
+					show  bool
+					label string
+					value string
+				}{
+					{*workdir, "workdir", s.Workdir},
+					{*pid, "pid", strconv.Itoa(s.PID)},
+					{*port, "port", strconv.Itoa(s.Port)},
+				} {
+					var b strings.Builder
+					if i.show {
+						b.WriteString(i.label)
+						b.WriteRune('=')
+						b.WriteString(i.value)
+					}
+					info = append(info, b.String())
+				}
+				if *workdir || *pid || *port {
+					fmt.Printf("label=%s %s\n", s.Label, strings.Join(info, " "))
+				} else {
+					fmt.Println(s.Label)
+				}
 			}
 
 			return nil
 		},
 	}
 	clean = cmd.Flags().Bool("clean", false, "clean orphaned sessions from neomux state")
+	workdir = cmd.Flags().Bool("wordirs", false, "show work directories")
+	pid = cmd.Flags().Bool("pids", false, "show nvim headless pids")
+	port = cmd.Flags().Bool("ports", false, "show nvim headless ports")
 	return cmd
 }
