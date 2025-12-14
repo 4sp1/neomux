@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"time"
 
 	proc_adapter "github.com/4sp1/neomux/internal/adapter/os/process"
 	state_adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
@@ -28,11 +29,11 @@ func New(p proc_adapter.Adapter, s state_adapter.Adapter, opts ...Option) (App, 
 type Label string
 
 type App interface {
-	Serve(label, workdir string, opts ...ServeOption) error
 	Attach(label string) error
 	AttachOrRestore(label string) error
-	StateClean() ([]Label, error)
 	Duplicate(label string, opts ...ServeOption) (string, error)
+	Serve(label, workdir string, opts ...ServeOption) error
+	StateClean() ([]Label, error)
 }
 
 type app struct {
@@ -182,6 +183,10 @@ func (a app) Attach(label string) error {
 	s, err := a.state.GetServer(context.TODO(), label)
 	if err != nil {
 		return fmt.Errorf("state: get server %q: %w", label, err)
+	}
+
+	if err := a.state.AttachServer(context.TODO(), label, time.Now()); err != nil {
+		return fmt.Errorf("state: attach server: %w", err)
 	}
 
 	cmd := exec.Command("neovide",

@@ -6,24 +6,20 @@ import (
 	"os"
 	"os/exec"
 
+	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/spf13/cobra"
 )
 
-func newKillCmd() *cobra.Command {
+func newKillCmd(state adapter.Adapter) *cobra.Command {
 	var label *string
 	cmd := &cobra.Command{
 		Use:   "kill [LABEL]",
 		Short: "kill nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			state, err := newState()
-			if err != nil {
-				return err
-			}
-
 			if len(args) == 1 {
 				*label = args[0]
 			}
-
+			var err error
 			if len(*label) == 0 {
 				*label, err = fzfRun(cmd.Context(), state)
 				if err != nil {

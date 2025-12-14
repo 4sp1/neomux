@@ -5,24 +5,21 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	procs "github.com/4sp1/neomux/internal/adapter/os/process"
+	adapter_state "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd() *cobra.Command {
-	var clean, workdir, pid, port *bool
+func newListCmd(state adapter_state.Adapter) *cobra.Command {
+	var clean, workdir, pid, port, attachedAt *bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "list all nvim servers' labels",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			state, err := newState()
-			if err != nil {
-				return err
-			}
-
 			proc, err := procs.New()
 			if err != nil {
 				return fmt.Errorf("procs adapter: new: %w", err)
@@ -64,6 +61,7 @@ func newListCmd() *cobra.Command {
 					{*workdir, "workdir", s.Workdir},
 					{*pid, "pid", strconv.Itoa(s.PID)},
 					{*port, "port", strconv.Itoa(s.Port)},
+					{*attachedAt, "attachedAt", s.AttachedAt.Format(time.RFC3339)},
 				} {
 					var b strings.Builder
 					if i.show {
@@ -84,8 +82,9 @@ func newListCmd() *cobra.Command {
 		},
 	}
 	clean = cmd.Flags().Bool("clean", false, "clean orphaned sessions from neomux state")
-	workdir = cmd.Flags().Bool("wordirs", false, "show work directories")
-	pid = cmd.Flags().Bool("pids", false, "show nvim headless pids")
-	port = cmd.Flags().Bool("ports", false, "show nvim headless ports")
+	workdir = cmd.Flags().Bool("wordir", false, "show work directories")
+	pid = cmd.Flags().Bool("pid", false, "show nvim headless pids")
+	port = cmd.Flags().Bool("port", false, "show nvim headless ports")
+	attachedAt = cmd.Flags().Bool("attached-at", false, "show last time neovide was attached to the server")
 	return cmd
 }

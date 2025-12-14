@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	proc_adapter "github.com/4sp1/neomux/internal/adapter/os/process"
+	state_adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func newNvCmd() *cobra.Command {
+func newNvCmd(state state_adapter.Adapter) *cobra.Command {
 	var label *string
 	var noReset *bool
 	var debug *bool
@@ -17,15 +18,10 @@ func newNvCmd() *cobra.Command {
 		Aliases: []string{"a", "nv"},
 		Short:   "attach neovide to nvim server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			state, err := newState()
-			if err != nil {
-				return err
-			}
-
 			if len(args) == 1 {
 				*label = args[0]
 			}
-
+			var err error
 			if *label == "" {
 				*label, err = fzfRun(cmd.Context(), state)
 				if err != nil {

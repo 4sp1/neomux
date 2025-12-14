@@ -5,15 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 )
 
 type NvimServer struct {
-	Port    int
-	PID     int
-	Label   string
-	Workdir string
+	Port       int
+	PID        int
+	Label      string
+	Workdir    string
+	AttachedAt *time.Time
 }
 
 type adapter struct {
@@ -21,13 +23,14 @@ type adapter struct {
 }
 
 type Adapter interface {
-	DeleteLabel(ctx context.Context, label string) error
-	CreateServer(ctx context.Context, server NvimServer) error
-	UpdateServerAddr(ctx context.Context, label string, port int, pid int) error
-	GetServer(ctx context.Context, label string) (NvimServer, error)
-	MaxPort(ctx context.Context) (int, error)
-	ListServers(ctx context.Context) ([]NvimServer, error)
+	AttachServer(ctx context.Context, label string, t time.Time) error
 	Close() error
+	CreateServer(ctx context.Context, server NvimServer) error
+	DeleteLabel(ctx context.Context, label string) error
+	GetServer(ctx context.Context, label string) (NvimServer, error)
+	ListServers(ctx context.Context) ([]NvimServer, error)
+	MaxPort(ctx context.Context) (int, error)
+	UpdateServerAddr(ctx context.Context, label string, port int, pid int) error
 }
 
 func New(path string) (Adapter, error) {
@@ -103,17 +106,30 @@ func (a adapter) MaxPort(ctx context.Context) (int, error) {
 }
 
 func (a adapter) ListServers(ctx context.Context) ([]NvimServer, error) {
-	rows, err := a.db.Query("SELECT port, pid, label, workdir FROM neovim_servers")
+	rows, err := a.db.Query("SELECT port, pid, label, workdir, attachedAt FROM neovim_servers")
 	if err != nil {
 		return nil, fmt.Errorf("query: select: %w", err)
 	}
 	servers := []NvimServer{}
 	for rows.Next() {
 		var s NvimServer
-		if err := rows.Scan(&s.Port, &s.PID, &s.Label, &s.Workdir); err != nil {
+		var t sql.NullTime
+		if err := rows.Scan(&s.Port, &s.PID, &s.Label, &s.Workdir, &t); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		if t.Valid {
+			s.AttachedAt = new(time.Time)
+			*s.AttachedAt = t.Time
 		}
 		servers = append(servers, s)
 	}
 	return servers, nil
+}
+
+func (a adapter) AttachServer(ctx context.Context, label string, t time.Time) error {
+	_, err := a.db.Exec("UPDATE neovim_servers SET attachedAt = ? WHERE label = ?", t, label)
+	if err != nil {
+		return fmt.Errorf("update: %w", err)
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 )
 
 func New() error {
+	var path *string
 	cmd := &cobra.Command{
 		Use:   "neomux",
 		Short: "neovim multiplexer",
@@ -17,22 +18,31 @@ func New() error {
 			return cmd.Help()
 		},
 	}
+	defaultPath, err := defaultStatePath()
+	if err != nil {
+		return fmt.Errorf("defaultStatePath: %w", err)
+	}
+	path = cmd.PersistentFlags().String("state", defaultPath, "state path")
+	state, err := newState(*path)
+	if err != nil {
+		return fmt.Errorf("new state: %w", err)
+	}
 	{
-		sc, err := newNewCmd()
+		sc, err := newNewCmd(state)
 		if err != nil {
 			return fmt.Errorf("new \"new\" cmd: %w", err)
 		}
 		cmd.AddCommand(sc)
 	}
-	cmd.AddCommand(newNvCmd())
-	cmd.AddCommand(newKillCmd())
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newStateCmd())
-	cmd.AddCommand(newDuplicateCmd())
+	cmd.AddCommand(newNvCmd(state))
+	cmd.AddCommand(newKillCmd(state))
+	cmd.AddCommand(newListCmd(state))
+	cmd.AddCommand(newStateCmd(state))
+	cmd.AddCommand(newDuplicateCmd(state))
 	return cmd.Execute()
 }
 
-func statePath() (string, error) {
+func defaultStatePath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("user home dir: %w", err)
@@ -41,11 +51,7 @@ func statePath() (string, error) {
 	return path, nil
 }
 
-func newState() (adapter.Adapter, error) {
-	path, err := statePath()
-	if err != nil {
-		return nil, fmt.Errorf("state path: %w", err)
-	}
+func newState(path string) (adapter.Adapter, error) {
 	state, err := adapter.New(path)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite state adapter: %w", err)

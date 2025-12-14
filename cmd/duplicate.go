@@ -3,11 +3,12 @@ package cmd
 import (
 	"fmt"
 
+	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func newDuplicateCmd() *cobra.Command {
+func newDuplicateCmd(state adapter.Adapter) *cobra.Command {
 	var attach *bool
 	var label *string
 	cmd := &cobra.Command{
@@ -17,20 +18,15 @@ func newDuplicateCmd() *cobra.Command {
 			if len(args) == 1 {
 				*label = args[0]
 			}
-
-			s, err := newState()
-			if err != nil {
-				return fmt.Errorf("new state: %w", err)
-			}
-
+			var err error
 			if len(*label) == 0 {
-				*label, err = fzfRun(cmd.Context(), s)
+				*label, err = fzfRun(cmd.Context(), state)
 				if err != nil {
 					return fmt.Errorf("fzf: %w", err)
 				}
 			}
 
-			a, err := app.New(nil, s, app.WithDebug())
+			a, err := app.New(nil, state, app.WithDebug())
 			if err != nil {
 				return fmt.Errorf("new app: %w", err)
 			}

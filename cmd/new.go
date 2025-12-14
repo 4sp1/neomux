@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	state_adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
 	"github.com/4sp1/neomux/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func newNewCmd() (*cobra.Command, error) {
+func newNewCmd(state state_adapter.Adapter) (*cobra.Command, error) {
 	var rangeStart *int // port start range
 	var attach *bool
 	var cd *string
@@ -17,11 +18,6 @@ func newNewCmd() (*cobra.Command, error) {
 		Short: "creates new nvim server in current directory",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			state, err := newState()
-			if err != nil {
-				return err
-			}
-
 			a, err := app.New(nil, state, app.WithMinPort(*rangeStart))
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
