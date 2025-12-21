@@ -54,6 +54,7 @@ func newNvCmd() *cobra.Command {
 				if err := app.Attach(*label); err != nil {
 					return fmt.Errorf("app: attach: %w", err)
 				}
+				exportLabel(*label)
 				return nil
 			}
 
@@ -61,6 +62,7 @@ func newNvCmd() *cobra.Command {
 				return fmt.Errorf("app: attach or restore: %w", err)
 			}
 
+			exportLabel(*label)
 			return nil
 		},
 	}

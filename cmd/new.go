@@ -10,6 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// exportlabel can be used to read neomux label from nvim configuration
+// For example: `set title titlestring=...`
+func exportLabel(label string) {
+	if err := os.Setenv("NEOMUX_LABEL", label); err != nil {
+		fmt.Println("unable to set env NEOMUX_LABEL")
+	}
+}
+
 func newNewCmd() (*cobra.Command, error) {
 	var rangeStart *int // port start range
 	var attach *bool
@@ -40,6 +48,8 @@ func newNewCmd() (*cobra.Command, error) {
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}
+
+			exportLabel(label)
 
 			if err := a.Serve(label, *cd, app.ServeWithAttach(*attach)); err != nil {
 				return fmt.Errorf("app: serve: %w", err)
