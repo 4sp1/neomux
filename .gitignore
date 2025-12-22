@@ -1,3 +1,6 @@
 .DS_Store
 .commit-stash
 neomux
+.prompt
+.prepare.yaml
+state.db

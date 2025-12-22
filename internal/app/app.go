@@ -185,7 +185,7 @@ func (a app) Attach(label string) error {
 	}
 
 	cmd := exec.Command("neovide",
-		"--frame=transparent", "--grid=120x80",
+		"--frame=transparent", "--grid=120x160",
 		fmt.Sprintf("--server=localhost:%d", s.Port))
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("exec: command neovide: %w", err)
