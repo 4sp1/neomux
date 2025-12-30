@@ -1,0 +1,3 @@
+20251111204424.sql create neovim_servers table
+20251113190800.sql add workdir column
+20251230154431.sql add last_attached_at column
