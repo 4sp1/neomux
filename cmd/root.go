@@ -5,7 +5,8 @@ import (
 	"os"
 	"path"
 
-	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	adapter "github.com/4sp1/neomux/internal/adapter/state/sqlite"
+	"github.com/4sp1/neomux/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,7 @@ func statePath() (string, error) {
 	return path, nil
 }
 
-func newState() (adapter.Adapter, error) {
+func newState() (repo.Server, error) {
 	path, err := statePath()
 	if err != nil {
 		return nil, fmt.Errorf("state path: %w", err)

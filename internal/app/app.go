@@ -8,11 +8,11 @@ import (
 	"os/exec"
 	"path"
 
-	proc_adapter "github.com/4sp1/neomux/internal/adapter/os/process"
-	state_adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	"github.com/4sp1/neomux/internal/domain/server"
+	"github.com/4sp1/neomux/internal/repo"
 )
 
-func New(p proc_adapter.Adapter, s state_adapter.Adapter, opts ...Option) (App, error) {
+func New(p repo.Proc, s repo.Server, opts ...Option) (App, error) {
 	var c Config
 	c.minPort = 10000
 	for _, opt := range opts {
@@ -36,8 +36,8 @@ type App interface {
 }
 
 type app struct {
-	proc  proc_adapter.Adapter
-	state state_adapter.Adapter
+	proc  repo.Proc
+	state repo.Server
 	conf  Config
 }
 
@@ -133,7 +133,7 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 			return fmt.Errorf("state: update server port: %w", err)
 		}
 	} else {
-		if err := a.state.CreateServer(context.Background(), state_adapter.NvimServer{
+		if err := a.state.CreateServer(context.Background(), server.Description{
 			PID:     cmd.Process.Pid,
 			Label:   label,
 			Port:    newPort,

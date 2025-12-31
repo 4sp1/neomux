@@ -6,31 +6,16 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/4sp1/neomux/internal/domain/server"
+	"github.com/4sp1/neomux/internal/repo"
 	_ "github.com/glebarez/go-sqlite"
 )
-
-type NvimServer struct {
-	Port    int
-	PID     int
-	Label   string
-	Workdir string
-}
 
 type adapter struct {
 	db *sql.DB
 }
 
-type Adapter interface {
-	DeleteLabel(ctx context.Context, label string) error
-	CreateServer(ctx context.Context, server NvimServer) error
-	UpdateServerAddr(ctx context.Context, label string, port int, pid int) error
-	GetServer(ctx context.Context, label string) (NvimServer, error)
-	MaxPort(ctx context.Context) (int, error)
-	ListServers(ctx context.Context) ([]NvimServer, error)
-	Close() error
-}
-
-func New(path string) (Adapter, error) {
+func New(path string) (repo.Server, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite open: %w", err)
@@ -61,7 +46,7 @@ func (a adapter) DeleteLabel(ctx context.Context, label string) error {
 	return nil
 }
 
-func (a adapter) CreateServer(ctx context.Context, server NvimServer) error {
+func (a adapter) CreateServer(ctx context.Context, server server.Description) error {
 	_, err := a.db.ExecContext(ctx,
 		"INSERT INTO neovim_servers (port, pid, label, workdir) VALUES(?, ?, ?, ?)",
 		server.Port, server.PID, server.Label, server.Workdir)
@@ -79,12 +64,12 @@ func (a adapter) UpdateServerAddr(ctx context.Context, label string, port int, p
 	return nil
 }
 
-func (a adapter) GetServer(ctx context.Context, label string) (NvimServer, error) {
+func (a adapter) GetServer(ctx context.Context, label string) (server.Description, error) {
 	row := a.db.QueryRow("SELECT port, pid, workdir FROM neovim_servers WHERE label=?", label)
-	var s NvimServer
+	var s server.Description
 	s.Label = label
 	if err := row.Scan(&s.Port, &s.PID, &s.Workdir); err != nil {
-		return NvimServer{}, fmt.Errorf("select: scan: %w", err)
+		return server.Description{}, fmt.Errorf("select: scan: %w", err)
 	}
 	return s, nil
 }
@@ -102,14 +87,14 @@ func (a adapter) MaxPort(ctx context.Context) (int, error) {
 	return int(maxPort.Int64), nil
 }
 
-func (a adapter) ListServers(ctx context.Context) ([]NvimServer, error) {
+func (a adapter) ListServers(ctx context.Context) ([]server.Description, error) {
 	rows, err := a.db.Query("SELECT port, pid, label, workdir FROM neovim_servers")
 	if err != nil {
 		return nil, fmt.Errorf("query: select: %w", err)
 	}
-	servers := []NvimServer{}
+	servers := []server.Description{}
 	for rows.Next() {
-		var s NvimServer
+		var s server.Description
 		if err := rows.Scan(&s.Port, &s.PID, &s.Label, &s.Workdir); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}

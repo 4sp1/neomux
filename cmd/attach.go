@@ -5,6 +5,7 @@ import (
 
 	proc_adapter "github.com/4sp1/neomux/internal/adapter/os/process"
 	"github.com/4sp1/neomux/internal/app"
+	"github.com/4sp1/neomux/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ func newNvCmd() *cobra.Command {
 				}
 			}
 
-			var proc proc_adapter.Adapter
+			var proc repo.Proc
 			if !*noReset {
 				proc, err = proc_adapter.New()
 				if err != nil {
