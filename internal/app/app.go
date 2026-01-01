@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/4sp1/neomux/internal/domain/server"
 	"github.com/4sp1/neomux/internal/repo"
@@ -15,6 +16,7 @@ import (
 func New(p repo.Proc, s repo.Server, opts ...Option) (App, error) {
 	var c Config
 	c.minPort = 10000
+	c = OptionTermUI()(c)
 	for _, opt := range opts {
 		c = opt(c)
 	}
@@ -44,6 +46,9 @@ type app struct {
 type Config struct {
 	minPort int
 	debug   bool
+
+	cmd  func(port int) *exec.Cmd
+	fork bool
 }
 
 type Option func(Config) Config
@@ -58,6 +63,40 @@ func OptionDebug() Option {
 func OptionStartPort(port int) Option {
 	return func(c Config) Config {
 		c.minPort = port
+		return c
+	}
+}
+
+func OptionNeovideUI(columns, lines int) Option {
+	if columns == 0 {
+		columns = 160
+	}
+	if lines == 0 {
+		lines = 120
+	}
+	return OptionUI(true, "neovide",
+		"--frame-transparent",
+		fmt.Sprintf("--grid=%dx%d", lines, columns),
+		"--server=localhost:%d")
+}
+
+func OptionTermUI() Option {
+	return OptionUI(false, "nvim",
+		"--server", "localhost:%d",
+		"--remote-ui")
+}
+
+func OptionUI(fork bool, command string, args ...string) Option {
+	return func(c Config) Config {
+		c.cmd = func(port int) *exec.Cmd {
+			for i, arg := range args {
+				if strings.Contains(arg, "%d") {
+					args[i] = fmt.Sprintf(arg, port)
+				}
+			}
+			return exec.Command(command, args...)
+		}
+		c.fork = fork
 		return c
 	}
 }
@@ -184,10 +223,18 @@ func (a app) Attach(label string) error {
 		return fmt.Errorf("state: get server %q: %w", label, err)
 	}
 
-	cmd := exec.Command("neovide",
-		"--frame=transparent", "--grid=120x160",
-		fmt.Sprintf("--server=localhost:%d", s.Port))
-	if err := cmd.Start(); err != nil {
+	cmd := a.conf.cmd(s.Port)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	mode := cmd.Run
+	if a.conf.fork {
+		mode = cmd.Start
+	}
+
+	if err := mode(); err != nil {
 		return fmt.Errorf("exec: command neovide: %w", err)
 	}
 
