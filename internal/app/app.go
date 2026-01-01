@@ -48,14 +48,14 @@ type Config struct {
 
 type Option func(Config) Config
 
-func WithDebug() Option {
+func OptionDebug() Option {
 	return func(c Config) Config {
 		c.debug = true
 		return c
 	}
 }
 
-func WithMinPort(port int) Option {
+func OptionStartPort(port int) Option {
 	return func(c Config) Config {
 		c.minPort = port
 		return c

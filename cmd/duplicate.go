@@ -30,7 +30,7 @@ func newDuplicateCmd() *cobra.Command {
 				}
 			}
 
-			a, err := app.New(nil, s, app.WithDebug())
+			a, err := app.New(nil, s, app.OptionDebug())
 			if err != nil {
 				return fmt.Errorf("new app: %w", err)
 			}
