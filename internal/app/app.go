@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -10,10 +11,11 @@ import (
 	"strings"
 
 	"github.com/4sp1/neomux/internal/domain/server"
+	"github.com/4sp1/neomux/internal/domain/workspace"
 	"github.com/4sp1/neomux/internal/repo"
 )
 
-func New(p repo.Proc, s repo.Server, opts ...Option) (App, error) {
+func New(p repo.Proc, s repo.Server, w repo.Workspace, opts ...Option) (App, error) {
 	var c Config
 	c.minPort = 10000
 	c = OptionTermUI()(c)
@@ -21,9 +23,10 @@ func New(p repo.Proc, s repo.Server, opts ...Option) (App, error) {
 		c = opt(c)
 	}
 	return &app{
-		proc:  p,
-		state: s,
-		conf:  c,
+		proc:      p,
+		server:    s,
+		workspace: w,
+		conf:      c,
 	}, nil
 }
 
@@ -35,12 +38,15 @@ type App interface {
 	AttachOrRestore(label string) error
 	StateClean() ([]Label, error)
 	Duplicate(label string, opts ...ServeOption) (string, error)
+	Shell(ctx context.Context, description workspace.Description) error
+	ListWorkspaces(ctx context.Context) error
 }
 
 type app struct {
-	proc  repo.Proc
-	state repo.Server
-	conf  Config
+	proc      repo.Proc
+	server    repo.Server
+	workspace repo.Workspace
+	conf      Config
 }
 
 type Config struct {
@@ -121,6 +127,66 @@ func ServeWithRestore(restore bool) ServeOption {
 	}
 }
 
+func (a app) ListWorkspaces(ctx context.Context) error {
+	workspaces, err := a.workspace.ListWorkspaces(ctx)
+	if err != nil {
+		return fmt.Errorf("list workspaces: %w", err)
+	}
+	var maxLen int
+	for _, workspace := range workspaces {
+		if maxLen < len(workspace.Label) {
+			maxLen = len(workspace.Label)
+		}
+	}
+	for _, w := range workspaces {
+		var b strings.Builder
+		b.WriteString(w.Label)
+		for b.Len() < maxLen+2 {
+			b.WriteRune(' ')
+		}
+		b.WriteString(w.Directory)
+		fmt.Println(b.String())
+	}
+	return nil
+}
+
+func (a app) getOrCreateWorkspace(ctx context.Context, description *workspace.Description) error {
+	lookup, err := a.workspace.GetWorkspace(ctx, description.Label)
+	if err != nil && description.Directory == "" {
+		return fmt.Errorf("no directory provided: get workspace: %w", err)
+	}
+	if err != nil && description.Directory != "" {
+		if err := a.workspace.CreateWorkspace(ctx, *description); err != nil {
+			return fmt.Errorf("create workspace: %w", err)
+		}
+		return nil
+	}
+	description.Directory = lookup.Directory
+	return nil
+}
+
+func (a app) Shell(ctx context.Context, description workspace.Description) error {
+	if err := a.getOrCreateWorkspace(ctx, &description); err != nil {
+		return fmt.Errorf("shell: %w", err)
+	}
+	return shell(description.Directory)
+}
+
+func shell(dir string) error {
+	shell, found := os.LookupEnv("SHELL")
+	if !found {
+		return errors.New("the required SHELL environment variable could not be located")
+	}
+	if err := os.Chdir(dir); err != nil {
+		return fmt.Errorf("chdir %q: %w", dir, err)
+	}
+	cmd := exec.Command(shell)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 	conf := ServeConfig{}
 	for _, opt := range opts {
@@ -168,11 +234,11 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 	}
 
 	if conf.restore {
-		if err := a.state.UpdateServerAddr(context.Background(), label, newPort, cmd.Process.Pid); err != nil {
+		if err := a.server.UpdateServerAddr(context.Background(), label, newPort, cmd.Process.Pid); err != nil {
 			return fmt.Errorf("state: update server port: %w", err)
 		}
 	} else {
-		if err := a.state.CreateServer(context.Background(), server.Description{
+		if err := a.server.CreateServer(context.Background(), server.Description{
 			PID:     cmd.Process.Pid,
 			Label:   label,
 			Port:    newPort,
@@ -192,7 +258,7 @@ func (a app) Serve(label, workdir string, opts ...ServeOption) error {
 }
 
 func (a app) AttachOrRestore(label string) error {
-	s, err := a.state.GetServer(context.TODO(), label)
+	s, err := a.server.GetServer(context.TODO(), label)
 	if err != nil {
 		return fmt.Errorf("state: get server %q: %w", label, err)
 	}
@@ -218,7 +284,7 @@ func (a app) AttachOrRestore(label string) error {
 }
 
 func (a app) Attach(label string) error {
-	s, err := a.state.GetServer(context.TODO(), label)
+	s, err := a.server.GetServer(context.TODO(), label)
 	if err != nil {
 		return fmt.Errorf("state: get server %q: %w", label, err)
 	}
@@ -241,7 +307,7 @@ func (a app) Attach(label string) error {
 	return nil
 }
 func (a app) StateClean() ([]Label, error) {
-	servers, err := a.state.ListServers(context.Background())
+	servers, err := a.server.ListServers(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("state: list servers: %w", err)
 	}
@@ -278,7 +344,7 @@ func (a app) StateClean() ([]Label, error) {
 }
 
 func (a app) deleteLabel(label string) error {
-	if err := a.state.DeleteLabel(context.Background(), label); err != nil {
+	if err := a.server.DeleteLabel(context.Background(), label); err != nil {
 		return fmt.Errorf("state: delete label %q: %w", label, err)
 	}
 	return nil
@@ -290,7 +356,7 @@ func (a app) Duplicate(label string, opts ...ServeOption) (string, error) {
 		conf = opt(conf)
 	}
 
-	s, err := a.state.GetServer(context.Background(), label)
+	s, err := a.server.GetServer(context.Background(), label)
 	if err != nil {
 		return "", fmt.Errorf("state: get server: %w", err)
 	}

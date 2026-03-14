@@ -25,6 +25,13 @@ func New() error {
 		}
 		cmd.AddCommand(sc)
 	}
+	{
+		wc, err := newWorkspaceCommand()
+		if err != nil {
+			return err
+		}
+		cmd.AddCommand(wc)
+	}
 	cmd.AddCommand(newNvCmd())
 	cmd.AddCommand(newKillCmd())
 	cmd.AddCommand(newListCmd())
@@ -40,6 +47,18 @@ func statePath() (string, error) {
 	}
 	path := path.Join(home, ".cache", "nvim", "servers.db")
 	return path, nil
+}
+
+func newStateWorkspace() (repo.Workspace, string, error) {
+	path, err := statePath()
+	if err != nil {
+		return nil, "", fmt.Errorf("state path: %w", err)
+	}
+	state, err := adapter.NewWorkspace(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("sqlite state adapter: %w", err)
+	}
+	return state, path, nil
 }
 
 func newState() (repo.Server, error) {

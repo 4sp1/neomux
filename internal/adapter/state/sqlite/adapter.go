@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/4sp1/neomux/internal/domain/server"
+	"github.com/4sp1/neomux/internal/domain/workspace"
 	"github.com/4sp1/neomux/internal/repo"
 	_ "github.com/glebarez/go-sqlite"
 )
@@ -16,6 +17,16 @@ type adapter struct {
 }
 
 func New(path string) (repo.Server, error) {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("sqlite open: %w", err)
+	}
+	return &adapter{
+		db: db,
+	}, nil
+}
+
+func NewWorkspace(path string) (repo.Workspace, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite open: %w", err)
@@ -101,4 +112,41 @@ func (a adapter) ListServers(ctx context.Context) ([]server.Description, error) 
 		servers = append(servers, s)
 	}
 	return servers, nil
+}
+
+func (a adapter) ListWorkspaces(ctx context.Context) ([]workspace.Description, error) {
+	rows, err := a.db.Query("SELECT label, directory FROM workspaces")
+	if err != nil {
+		return nil, fmt.Errorf("select: %w", err)
+	}
+	var workspaces []workspace.Description
+	for rows.Next() {
+		var w workspace.Description
+		if err := rows.Scan(&w.Label, &w.Directory); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		workspaces = append(workspaces, w)
+	}
+	return workspaces, nil
+}
+
+func (a adapter) CreateWorkspace(ctx context.Context, description workspace.Description) error {
+	_, err := a.db.Exec("INSERT INTO workspaces (label, directory) VALUES (?, ?)", description.Label, description.Directory)
+	if err != nil {
+		return fmt.Errorf("insert: %w", err)
+	}
+	return nil
+
+}
+
+func (a adapter) GetWorkspace(ctx context.Context, label string) (*workspace.Description, error) {
+	row := a.db.QueryRow("SELECT directory FROM workspaces WHERE label=?", label)
+	var directory string
+	if err := row.Scan(&directory); err != nil {
+		return nil, fmt.Errorf("scan: %w", err)
+	}
+	return &workspace.Description{
+		Label:     label,
+		Directory: directory,
+	}, nil
 }

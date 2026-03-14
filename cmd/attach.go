@@ -46,7 +46,7 @@ func newNvCmd() *cobra.Command {
 			if *debug {
 				opts = append(opts, app.OptionDebug())
 			}
-			app, err := app.New(proc, state, opts...)
+			app, err := app.New(proc, state, nil, opts...)
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}

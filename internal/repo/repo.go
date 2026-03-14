@@ -5,6 +5,7 @@ import (
 
 	"github.com/4sp1/neomux/internal/domain/proc"
 	"github.com/4sp1/neomux/internal/domain/server"
+	"github.com/4sp1/neomux/internal/domain/workspace"
 )
 
 type Server interface {
@@ -15,6 +16,12 @@ type Server interface {
 	MaxPort(ctx context.Context) (int, error)
 	ListServers(ctx context.Context) ([]server.Description, error)
 	Close() error
+}
+
+type Workspace interface {
+	CreateWorkspace(ctx context.Context, description workspace.Description) error
+	GetWorkspace(ctx context.Context, label string) (*workspace.Description, error)
+	ListWorkspaces(ctx context.Context) ([]workspace.Description, error)
 }
 
 type Proc interface {
