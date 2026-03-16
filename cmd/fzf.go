@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	"github.com/4sp1/neomux/internal/repo"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-func fzfRun(ctx context.Context, state adapter.Adapter) (string, error) {
+func fzfRun(ctx context.Context, state repo.Server) (string, error) {
 	servers, err := state.ListServers(ctx)
 	if err != nil {
 		return "", fmt.Errorf("list servers: %w", err)

@@ -1,0 +1,5 @@
+CREATE TABLE workspaces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL UNIQUE,
+    directory TEXT NOT NULL
+);

@@ -36,7 +36,7 @@ func newStateCleanCmd() *cobra.Command {
 				return err
 			}
 
-			app, err := app.New(proc, state)
+			app, err := app.New(proc, state, nil)
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}

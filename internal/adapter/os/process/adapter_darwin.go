@@ -1,5 +1,4 @@
 //go:build darwin
-// +build darwin
 
 package adapter
 
@@ -9,20 +8,23 @@ import (
 	"fmt"
 	"syscall"
 	"unsafe"
+
+	"github.com/4sp1/neomux/internal/domain/proc"
+	"github.com/4sp1/neomux/internal/repo"
 )
 
 type adapter struct{}
 
-func New() (Adapter, error) {
+func New() (repo.Proc, error) {
 	return &adapter{}, nil
 }
 
-func (a adapter) List() ([]Process, error) {
+func (a adapter) List() ([]proc.Proc, error) {
 	return processes()
 }
 
 // https://github.com/mitchellh/go-ps/blob/ddafa7589c607e0e81a7436520ccdbac913665a2/process_darwin.go#L45
-func processes() ([]Process, error) {
+func processes() ([]proc.Proc, error) {
 	buf, err := kernProcAll()
 	if err != nil {
 		return nil, fmt.Errorf("kern proc all: %w", err)
@@ -38,9 +40,9 @@ func processes() ([]Process, error) {
 		k = i
 		procs = append(procs, proc)
 	}
-	darwinProcs := make([]Process, len(procs))
+	darwinProcs := make([]proc.Proc, len(procs))
 	for i, p := range procs {
-		darwinProcs[i] = Process{
+		darwinProcs[i] = proc.Proc{
 			PID:    int(p.Pid),
 			Binary: darwinCstring(p.Comm),
 		}

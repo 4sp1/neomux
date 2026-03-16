@@ -5,7 +5,8 @@ import (
 	"os"
 	"path"
 
-	adapter "github.com/4sp1/neomux/internal/adapter/sqlite/state"
+	adapter "github.com/4sp1/neomux/internal/adapter/state/sqlite"
+	"github.com/4sp1/neomux/internal/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,13 @@ func New() error {
 		}
 		cmd.AddCommand(sc)
 	}
+	{
+		wc, err := newWorkspaceCommand()
+		if err != nil {
+			return err
+		}
+		cmd.AddCommand(wc)
+	}
 	cmd.AddCommand(newNvCmd())
 	cmd.AddCommand(newKillCmd())
 	cmd.AddCommand(newListCmd())
@@ -41,7 +49,19 @@ func statePath() (string, error) {
 	return path, nil
 }
 
-func newState() (adapter.Adapter, error) {
+func newStateWorkspace() (repo.Workspace, string, error) {
+	path, err := statePath()
+	if err != nil {
+		return nil, "", fmt.Errorf("state path: %w", err)
+	}
+	state, err := adapter.NewWorkspace(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("sqlite state adapter: %w", err)
+	}
+	return state, path, nil
+}
+
+func newState() (repo.Server, error) {
 	path, err := statePath()
 	if err != nil {
 		return nil, fmt.Errorf("state path: %w", err)

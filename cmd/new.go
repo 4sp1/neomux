@@ -44,7 +44,7 @@ func newNewCmd() (*cobra.Command, error) {
 				return err
 			}
 
-			a, err := app.New(nil, state, app.WithMinPort(*rangeStart))
+			a, err := app.New(nil, state, nil, app.OptionStartPort(*rangeStart))
 			if err != nil {
 				return fmt.Errorf("app: new: %w", err)
 			}
