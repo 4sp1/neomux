@@ -150,3 +150,11 @@ func (a adapter) GetWorkspace(ctx context.Context, label string) (*workspace.Des
 		Directory: directory,
 	}, nil
 }
+
+func (a adapter) DeleteWorkspace(ctx context.Context, label string) error {
+	_, err := a.db.ExecContext(ctx, "DELETE FROM workspaces WHERE label = ?", label)
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	return nil
+}

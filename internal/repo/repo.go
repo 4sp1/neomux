@@ -22,6 +22,7 @@ type Workspace interface {
 	CreateWorkspace(ctx context.Context, description workspace.Description) error
 	GetWorkspace(ctx context.Context, label string) (*workspace.Description, error)
 	ListWorkspaces(ctx context.Context) ([]workspace.Description, error)
+	DeleteWorkspace(ctx context.Context, label string) error
 }
 
 type Proc interface {

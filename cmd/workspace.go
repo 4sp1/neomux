@@ -38,14 +38,10 @@ The command creates a workspace labeled LABEL.
 If that workspace does not already exist, it links the specified directory
 (defaulting to the current directory) to it.
 
-A workspace can be created only once; to delete it you must manually edit
+A workspace can be created only once; to delete it
 
-sqlite3 %q
-
-and remove the corresponding row:
-
-DELETE FROM workspaces WHERE label='%s'
-`, path, label),
+neomux workspace delete %s
+`, label),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return app.Shell(context.Background(), workspace.Description{
 				Label:     args[0],
@@ -61,6 +57,7 @@ DELETE FROM workspaces WHERE label='%s'
 	directory = cmd.Flags().StringP("directory", "d", dir, "create workspace in directory")
 
 	cmd.AddCommand(newWorkspaceListCommand(app, path))
+	cmd.AddCommand(newWorkspaceDeleteCommand(app))
 
 	return cmd, nil
 }
@@ -72,6 +69,21 @@ func newWorkspaceListCommand(app app.App, statePath string) *cobra.Command {
 			if err := app.ListWorkspaces(context.Background()); err != nil {
 				fmt.Println("state db:", statePath)
 				return err
+			}
+			return nil
+		},
+	}
+}
+
+func newWorkspaceDeleteCommand(app app.App) *cobra.Command {
+	return &cobra.Command{
+		Use:  "delete LABEL [LABEL...]",
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			for _, label := range args {
+				if err := app.DeleteWorkspace(cmd.Context(), label); err != nil {
+					return err
+				}
 			}
 			return nil
 		},

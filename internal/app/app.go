@@ -40,6 +40,7 @@ type App interface {
 	Duplicate(label string, opts ...ServeOption) (string, error)
 	Shell(ctx context.Context, description workspace.Description) error
 	ListWorkspaces(ctx context.Context) error
+	DeleteWorkspace(ctx context.Context, label string) error
 }
 
 type app struct {
@@ -146,6 +147,13 @@ func (a app) ListWorkspaces(ctx context.Context) error {
 		}
 		b.WriteString(w.Directory)
 		fmt.Println(b.String())
+	}
+	return nil
+}
+
+func (a app) DeleteWorkspace(ctx context.Context, label string) error {
+	if err := a.workspace.DeleteWorkspace(ctx, label); err != nil {
+		return fmt.Errorf("delete workspace: %w", err)
 	}
 	return nil
 }
